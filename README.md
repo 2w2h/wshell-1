@@ -38,7 +38,7 @@ in mongo container:
     map                          ANY    /map
     observer                     ANY    /observer
 
-    UserBundle
+    UserBundle +
     login                        ANY    /login
     oauth                        ANY    /oauth
     github_login                 ANY    /oauth/github

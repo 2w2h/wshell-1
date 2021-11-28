@@ -11,14 +11,14 @@
         $(document).ready(function () {
             $('#terminal').terminal([ "/term", {
                 "mysql": function () {
-                    this.push(function (command, term) { // push next interpreter/ pop for return
-                        $.jrpc("rpc.php", 'mysql', [command], function (json) {
+                    this.push(function (command, term) {
+                        $.jrpc("/term", 'mysql', [command], function (json) {
                             term.echo(json.result);
                         });
                     }, {
                         prompt: 'mysql> ',
                         login: function (user, password, callback) {
-                            if (user == 'demo' && password == 'secret') {
+                            if (user === 'demo' && password === 'secret') {
                                 callback('SECRET TOKEN');
                             } else {
                                 callback(null);
@@ -36,27 +36,23 @@
                     this.test(arg)
                 }
             }],
-                    {
-                        prompt: '> ',
-                        name: 'nabla',
-                        greetings: "Welcome!\nКраткая справка доступна по команде 'help'",
-                        linksNoReferer: false,
-                        exit: true, // for exit on Ctrl + D
-                        clear: true, // Ctrl + L
-                        login: false,
-                        completion: true,
-                        height: 470,
-                        onRPCError: function () {
-                            this.error('Shit happens, RPC error')
-                        },
-                        exceptionHandler: function (error) {
-                            term.exception(error, 'Fuck, exception!')
-                        }
-                        // onInit, onExit, onClear, onBlur, onFocus, onResize, processRPCResponse
-                        // onTerminalChange, onBeforeLogin, onCommandChange
-                        //keypress [function(event, terminal)]
-                        //keydown [function(event, terminal)]
-                    });
+            {
+                prompt: '> ',
+                name: 'nabla',
+                greetings: "Welcome!\nКраткая справка доступна по команде 'help'",
+                linksNoReferer: false,
+                exit: true, // for exit on Ctrl + D
+                clear: true, // Ctrl + L
+                login: false,
+                completion: true,
+                height: 470,
+                onRPCError: function (e) {
+                    this.error('Error: ' + e.message)
+                },
+                exceptionHandler: function (error) {
+                    term.exception(error, 'exception')
+                }
+            });
         });
     </script>
 {% endblock %}
@@ -65,7 +61,6 @@
     {{ parent() }}
     <link href="/css/jquery.terminal.css" rel="stylesheet">
 {% endblock %}
-
 
 {% block main %}
 

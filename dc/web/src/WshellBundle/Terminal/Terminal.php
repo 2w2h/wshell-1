@@ -1,28 +1,60 @@
 <?php
 
-/*
- * NOTE: text how http:// display in html (<a href='...'>...</a>)
- */
+namespace WshellBundle\Terminal;
 
-class Terminal
+use Datto\JsonRpc\Evaluator;
+
+class Terminal implements Evaluator
 {
+    public function describe()
+    {
+        return [
+            'ls'        => 'Выдаёт содержимое текущей директории в виде списка, необходим токен. (Использование: ls [token])',
+            'login'     => 'login to the server (return token). Using:\nlogin [login] [password]',
+            'soundtest' => 'Soundtest command',
+            'whoami'    => 'return user information',
+            'asciicam'  => 'ASCII camera(https://github.com/idevelop/ascii-camera)',
+            'ram'       => 'check RAM memory usage',
+            'test'      => 'Testing of all elements of the system',
+            'imitation' => 'imitation of a typical human conversation from the standpoint computer\n
+      The ideal solution for the Turing test',
+            'random'    => 'Generate a random number. most random',
+            'bb'        => 'Beavis & Butt-head ASCII',
+            'help'      => 'help',
+        ];
+    }
 
-    static $ls_documentation = "Выдаёт содержимое текущей директории в виде списка, необходим токен. (Использование: ls [token])";
+    public function evaluate($method, $arguments)
+    {
+        return $this->$method(...$arguments);
+    }
+
+    public function help($command = null)
+    {
+        if ($command) {
+            return $this->describe()[$command] ?? 'Не найдена справка по этой команде';
+        }
+        $result = [];
+        foreach ($this->describe() as $command => $help) {
+            $result[] = $command . ": " . $help;
+        }
+        return implode("\n", $result);
+    }
 
     public function ls($token = null, $path = null)
     {
         if (strcmp(md5("noname:1234"), $token) == 0) {
             if (@is_file($path)) {
-                throw new Exception("No. I'ts file, why are you doing this? By hand enter path, bummer");
+                throw new \Exception("No. I'ts file, why are you doing this? By hand enter path, bummer");
             } elseif (@preg_match("/\.\./", $path)) {
-                throw new Exception("No directory traversal Dude");
+                throw new \Exception("No directory traversal Dude");
             } elseif (@!is_dir($path)) {
-                throw new Exception("Nothing. You make me feel sad.");
+                throw new \Exception("Nothing. You make me feel sad.");
             } else {
                 $base = preg_replace("/(.*\/).*/", "$1", $_SERVER["SCRIPT_FILENAME"]);
                 $path = $base . ($path[0] != '/' ? "/" : "") . $path;
-                $dir  = opendir($path);
-                while($name = readdir($dir)) {
+                $dir = opendir($path);
+                while ($name = readdir($dir)) {
                     $fname = $path . "/" . $name;
                     if (!is_dir($name) && !is_dir($fname)) {
                         $list[] = $name;
@@ -32,38 +64,30 @@ class Terminal
                 return $list;
             }
         } else {
-            throw new Exception("Access Denied");
+            throw new \Exception("Access Denied");
         }
     }
-
-    static $login_documentation = "login to the server (return token). Using:\nlogin [login] [password]";
 
     public function login($user = '', $passwd = '')
     {
         if (strcmp($user, 'noname') == 0 && strcmp($passwd, '1234') == 0) {
             return md5($user . ":" . $passwd);
         } else {
-            throw new Exception("Wrong Password. This is not the case, see 'help login'");
+            throw new \Exception("Wrong Password. This is not the case, see 'help login'");
         }
     }
-
-    static $soundtest_documentation = "Soundtest command";
 
     public function soundtest()
     {
         return '<audio controls><source src="sound/test.mp3" type="audio/mpeg"></audio>';
     }
 
-    static $whoami_documentation = "return user information";
-
     public function whoami()
     {
         return "your User Agent : " . $_SERVER["HTTP_USER_AGENT"] .
-        "\nyour IP : " . $_SERVER['REMOTE_ADDR'] .
-        "\nyou access this from : " . $_SERVER["HTTP_REFERER"];
+            "\nyour IP : " . $_SERVER['REMOTE_ADDR'] .
+            "\nyou access this from : " . $_SERVER["HTTP_REFERER"];
     }
-
-    static $asciicam_documentation = "ASCII camera(https://github.com/idevelop/ascii-camera)";
 
     public function asciicam()
     {
@@ -73,15 +97,10 @@ class Terminal
 <script src="script/app.js"></script>';
     }
 
-
-    static $ram_documentation = "check RAM memory usage";
-
     public function ram()
     {
         return 'pRamPeak: ' . (memory_get_peak_usage(TRUE) >> 10) . 'kB curMemoryPeak: ' . (memory_get_peak_usage() >> 10) . "kB";
     }
-
-    static $test_documentation = "Testing of all elements of the system";
 
     public function test()
     {
@@ -95,9 +114,6 @@ Sound driver: not information
 I/O controller: NABLA-terminal ver 1.0";
     }
 
-    static $imitation_documentation = "imitation of a typical human conversation from the standpoint computer\n
-      The ideal solution for the Turing test";
-
     public function imitation()
     {
         return "Bla Bla Bla! Bla-blabla bla-bla-bla\n
@@ -106,14 +122,10 @@ I/O controller: NABLA-terminal ver 1.0";
         bla bla? bla blabla. Bla.";
     }
 
-    static $random_documentation = 'Generate a random number. most random';
-
     public function random()
     {
         return '42';
     }
-
-    static $bb_documentation = 'Beavis & Butt-head ASCII';
 
     public function bb()
     {
@@ -219,5 +231,4 @@ SBEAVI|       ____________/ BEAVISBEAVISBEAVISBEAVISBEAVISBEAVISBEAVIS
 BEAVIS|      /BEAVISBEAVISBEAVISBEAVISBEAVISBEAVISBEAVISBEAVISBEAVISBE
 EOD;
     }
-
 }
