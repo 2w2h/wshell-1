@@ -1,4 +1,4 @@
-wShell на момент 2016 года
+wShell на момент 2016 года.
 
 ## node
 
@@ -28,17 +28,16 @@ in mongo container:
 
 ### routes
 
-    WshellBundle
+    WshellBundle +
     news                         ANY    /
     nabla                        ANY    /nabla
     term                         ANY    /term
     chapters                     ANY    /chapters
     doc                          ANY    /doc/{book}
-    about                        ANY    /about
     map                          ANY    /map
     observer                     ANY    /observer
 
-    UserBundle +
+    UserBundle +, кроме /settings
     login                        ANY    /login
     oauth                        ANY    /oauth
     github_login                 ANY    /oauth/github
@@ -46,11 +45,11 @@ in mongo container:
     login_check                  ANY    /login_check
     logout                       ANY    /logout
 
-    AdminBundle
+    AdminBundle -
     units                        GET    /admin/units/{unitId}
     edit_unit                   POST    /admin/units/post
 
-    UnitBundle
+    UnitBundle -
     uitest                       ANY    /units/uitest
     chain                        ANY    /units/chain
     single                       ANY    /units/single/{name}

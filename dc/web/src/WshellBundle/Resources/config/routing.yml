@@ -14,9 +14,6 @@ chapters:
 doc:
     path:     /doc/{book}
     defaults: { _controller: WshellBundle:Main:doc, book:'' }
-about:
-    path:     /about
-    defaults: { _controller: WshellBundle:Main:about }
 
 # Map
 map:

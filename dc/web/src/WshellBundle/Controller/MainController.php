@@ -86,6 +86,12 @@ class MainController extends Controller
             //     'link' => '/battle',
             //     'img' => 'img/chapters/bm.png'
             // ],
+            [
+                'anno'  => 'Карта интернета',
+                'title' => 'Observer',
+                'link'  => '/observer',
+                'img'   => 'img/chapters/observe.png',
+            ],
         ];
 
         return $this->render('WshellBundle:Main:chapters.html.twig', [
@@ -135,13 +141,6 @@ class MainController extends Controller
             'books'    => json_encode($books),
             'sections' => (isset($sections)) ? $sections : null,
             'book'     => $request->query->get('bookName') ?: null,
-        ]);
-    }
-
-    public function aboutAction()
-    {
-        return $this->render('WshellBundle:Main:about.html.twig', [
-            'active5' => 'active',
         ]);
     }
 }
