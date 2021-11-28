@@ -2,14 +2,14 @@
 
 namespace UserBundle\Controller;
 
+use League\OAuth2\Client\Provider\GenericProvider;
+use League\OAuth2\Client\Provider\Github;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use ohmy\Auth2;
 use UserBundle\Document\User;
 use UserBundle\Security\OAuthToken;
-
 
 class SecurityController extends Controller
 {
@@ -39,101 +39,156 @@ class SecurityController extends Controller
         return $this->redirectToRoute('login');
     }
 
-
     public function vkLoginAction()
     {
         $params = $this->getParameter('oauth.vk');
 
-        $vk = Auth2::legs(3)
-            # configuration
-            ->set($params)
-            # oauth flow
-            ->authorize('https://oauth.vk.com/authorize')
-            ->access('https://oauth.vk.com/access_token')
-            ->finally(function ($data) use (&$access_token) {
-                $access_token = $data['access_token'];
-            });
+        $fields = 'photo,first_name,last_name,screen_name';
+        $provider = new GenericProvider([
+            'clientId'                => $params['id'],
+            'clientSecret'            => $params['secret'],
+            'redirectUri'             => $params['redirect'],
+            'urlAuthorize'            => 'https://oauth.vk.com/authorize',
+            'urlAccessToken'          => 'https://oauth.vk.com/access_token',
+            'urlResourceOwnerDetails' => 'https://api.vk.com/method/getProfiles?v=5.131&fields=' . $fields
+        ]);
 
-        # access vk api
-        $vk->GET("https://api.vk.com/method/getProfiles?access_token=$access_token", null,
-            ['User-Agent' => 'wshell-auth'])
-            ->then(function ($response) use (&$access_token) {
+        // step 1
+        if (!isset($_GET['code'])) {
+            $authUrl = $provider->getAuthorizationUrl();
+            $_SESSION['oauth2state'] = $provider->getState();
+            return $this->redirect($authUrl);
 
-                $userVk = current($response->json()['response']);
-                $user = $this->get('my_user_provider')->loadUserByOAuthProvider( 'vk', $userVk['uid'] );
-                if (!$user) {
-                    // register new user
-                    $username = trim($userVk['first_name'] . ' ' . $userVk['last_name']);
-                    $providers = [
-                        'vk' => [
-                            'id'    => $userVk['uid'],
-                            'name' => $username
-                        ]
-                    ];
-                    $user = new User([
-                        'providers' => $providers,
-                        'roles'     => ['ROLE_USER'],
-                        'username'  => $username,
-                    ]);
+        // ошибочное состояние
+        } elseif (empty($_GET['state']) || ($_GET['state'] !== $_SESSION['oauth2state'])) {
+            unset($_SESSION['oauth2state']);
+            exit('Invalid state');
 
-                    $this->get('mongo')->wshell->users->insertOne($user);
-                }
+        // step 2
+        } else {
+            $token = $provider->getAccessToken('authorization_code', [
+                'code' => $_GET['code'],
+            ]);
 
-                $token = new OAuthToken($user);
-                $this->get('security.token_storage')->setToken($token);
-            });
+            try {
+                $user = $provider->getResourceOwner($token);
+                $userVk = $user->toArray()['response'][0];
+            } catch (\Exception $e) {
+                echo $e->getMessage();
+                exit('Сломалась oauth авторизация с VK...');
+            }
+        }
 
-            return $this->redirectToRoute('news');
+        $user = $this->get('my_user_provider')->loadUserByOAuthProvider('vk', $userVk['id'] );
+
+        // register new user
+        if (!$user) {
+            $name  = $userVk['first_name'] . ' ' . $userVk['last_name'];
+            $login = $userVk['screen_name'] ?? uniqid();
+            $providers = [
+                'vk' => [
+                    'id'           => $userVk['id'],
+                    'login'        => $login,
+                    'avatar_url'   => $userVk['photo'],
+                    'name'         => $name,
+                ]
+            ];
+
+            $login = $this->selectUniqUsername($login);
+
+            $user = new User([
+                'providers' => $providers,
+                'roles'     => ['ROLE_USER'],
+                'username'  => $login,
+            ]);
+
+            $this->get('mongo')->wshell->users->insertOne($user);
+        }
+
+        $this->get('security.token_storage')->setToken(new OAuthToken($user));
+
+        return $this->redirectToRoute('news');
     }
 
-    public function githubLoginAction()
+    public function githubLoginAction(Request $request)
     {
         $params = $this->getParameter('oauth.github');
 
-        $github = Auth2::legs(3)
-            # configuration
-            ->set($params)
-            # oauth flow
-            ->authorize('https://github.com/login/oauth/authorize')
-            ->access('https://github.com/login/oauth/access_token')
-            ->finally(function ($data) use (&$access_token) {
-                $access_token = $data['access_token'];
-            });
+        $provider = new Github([
+            'clientId'     => $params['id'],
+            'clientSecret' => $params['secret'],
+            'redirectUri'  => $params['redirect'],
+        ]);
 
-        # access github api
-        $github->GET("https://api.github.com/user?access_token=$access_token", null,
-            ['User-Agent' => 'wshell-auth'])
-            ->then(function ($response) use ($access_token) {
+        // step 1
+        if (!isset($_GET['code'])) {
+            $authUrl = $provider->getAuthorizationUrl();
+            $_SESSION['oauth2state'] = $provider->getState();
+            return $this->redirect($authUrl);
 
-                $userGithub = $response->json();
-                $user = $this->get('my_user_provider')->loadUserByOAuthProvider( 'github', $userGithub['id'] );
-                if (!$user) {
-                    // register new user
-                    $providers = [
-                        'github' => [
-                            'id'    =>  $userGithub['id'],
-                            'login' => $userGithub['login'],
-                            'email' => $userGithub['email'],
-                            'avatar_url' => $userGithub['avatar_url'],
-                            'html_url' => $userGithub['html_url'],
-                            'name' => $userGithub['name'],
-                            'location' => $userGithub['location'],
-                            'public_repos' => $userGithub['public_repos'],
-                        ]
-                    ];
-                    $user = new User([
-                        'providers' => $providers,
-                        'roles'     => ['ROLE_USER'],
-                        'username'  => $userGithub['login'],
-                    ]);
+        // ошибочное состояние
+        } elseif (empty($_GET['state']) || ($_GET['state'] !== $_SESSION['oauth2state'])) {
+            unset($_SESSION['oauth2state']);
+            exit('Invalid state');
 
-                    $this->get('mongo')->wshell->users->insertOne($user);
-                }
+        // step 2
+        } else {
+            $token = $provider->getAccessToken('authorization_code', [
+                'code' => $_GET['code'],
+            ]);
 
-                $token = new OAuthToken($user);
-                $this->get('security.token_storage')->setToken($token);
-            });
+            try {
+                $user = $provider->getResourceOwner($token);
+                $userGithub = $user->toArray();
+            } catch (\Exception $e) {
+                exit('Сломалась oauth авторизация с GitHub...');
+            }
+        }
 
-            return $this->redirectToRoute('news');
+        $user = $this->get('my_user_provider')->loadUserByOAuthProvider( 'github', $userGithub['id'] );
+
+        // register new user
+        if (!$user) {
+            $providers = [
+                'github' => [
+                    'id'           => $userGithub['id'],
+                    'login'        => $userGithub['login'],
+                    'email'        => $userGithub['email'],
+                    'avatar_url'   => $userGithub['avatar_url'],
+                    'html_url'     => $userGithub['html_url'],
+                    'name'         => $userGithub['name'],
+                    'location'     => $userGithub['location'],
+                    'public_repos' => $userGithub['public_repos'],
+                ]
+            ];
+
+            $login = $this->selectUniqUsername($userGithub['login']);
+
+            $user = new User([
+                'providers' => $providers,
+                'roles'     => ['ROLE_USER'],
+                'username'  => $login,
+            ]);
+
+            $this->get('mongo')->wshell->users->insertOne($user);
+        }
+
+        $this->get('security.token_storage')->setToken(new OAuthToken($user));
+
+        return $this->redirectToRoute('news');
+    }
+
+    /**
+     * если username занят, нужно подобрать незанятый
+     */
+    protected function selectUniqUsername($login)
+    {
+        $suffix = 1;
+        $loginWithSuffix = $login;
+        while ($this->get('my_user_provider')->loadUserByUsername($loginWithSuffix)) {
+            $loginWithSuffix = $login . '_' . $suffix;
+            $suffix++;
+        }
+        return $loginWithSuffix;
     }
 }

@@ -14,4 +14,8 @@ parameters:
     oauth.github:
             id: 8090a78af82436ec9019
             secret: 47e05652460ac0334bdb0cf24fada4dc0484f5df
-            redirect: http://wshell.dev/oauth/github
+            redirect: 'http://wshell.localhost/oauth/github'
+    oauth.vk:
+        id: 8012367
+        secret: EpY59JNJ4R0PcndCGXHY
+        redirect: 'http://wshell.localhost/oauth/vk'
