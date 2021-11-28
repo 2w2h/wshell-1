@@ -1,9 +1,10 @@
-FROM php:7.0.8-fpm
+FROM php:7.1-fpm
 
 MAINTAINER pilot114@bk.ru
 
 RUN apt-get update && apt-get install -y git libssl-dev
 
+RUN pecl channel-update pecl.php.net
 RUN pecl install -o -f redis \
 &&  rm -rf /tmp/pear \
 && docker-php-ext-enable redis

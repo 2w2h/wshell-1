@@ -1,46 +1,21 @@
-## Node
-Исходники wshell ноды
+wShell на момент 2016 года
 
+## node
+Исходники wshell ноды (Бинарник, выполняющий юниты)
 
-## Web
-web интерфейс
+## dc/web
+web интерфейс - Symfony 3, twig, console wamp router+client.
+Есть бандлы Admin / Unit / User / WShell.
+В целом, должно быть рабочей версией
 
+## dc/*
 
-## dev
-тут лежат настройки для развертывания рабочего окружения.
-Те контейнеры, которые используются как сервисы перечислены в docker-compose.yml
-Другие, которые требуется запускать лишь время от времени, представлены в виде
-коротких алиасов.
+Контейнеры-сервисы: nginx / mongo / redis
 
-Для большинства сайтов достаточно положить их в директорию sites (они будут
-доступны по домену SITE_NAME.dev), корнем сайта будет директория SITE_NAME/web
+### bower deps install
 
-### nodejs
-
-    docker run -it --rm -v $(pwd):/usr/src/app dc_node node
     docker run -it --rm -v $(pwd):/usr/src/app dc_node bower install --allow-root -q -s
     docker run -it --rm -v $(pwd):/usr/src/app -e UID=$(id -u) dc_node chown -R $UID .
-    // add this to .bashrc to alias npm
-    // and use it like a regular npm command. eg: npm install
-    alias npm='docker run --rm -v $(pwd)/:/mnt/ -e UID=$(id -u) -e GID=$(id -g) dc_node npm'
-    // add this to .bashrc to alias gulp
-    // and use it like a regular gulp command. eg: gulp release
-    alias gulp='docker run --rm -v $(pwd)/:/mnt/ -e UID=$(id -u) -e GID=$(id -g) dc_node gulp'
-
-### docker-compose
-
-    docker-compose ps - список запущенных контейнеров
-    docker-compose port
-    docker-compose logs
-
-    docker-compose build - сборка
-    docker-compose run - параметры для запуска чего-нибудь внутри
-    docker-compose up - запуск интерактивно
-    docker-compose start - то же самое, но сразу в detached mode
-    docker-compose restart
-    docker-compose stop
-    docker-compose kill - форсированная остановка
-    docker-compose scale - маштабировать сервисы
 
 ### mongo backup
 in mongo container:
@@ -48,5 +23,25 @@ in mongo container:
     cd /data/db
     mongodump --db wshell
 
-## docs
-Различная сопроводительная документация
+### routes
+
+    news                       ANY      ANY      ANY    /
+    nabla                      ANY      ANY      ANY    /nabla
+    term                       ANY      ANY      ANY    /term
+    chapters                   ANY      ANY      ANY    /chapters
+    doc                        ANY      ANY      ANY    /doc/{book}
+    about                      ANY      ANY      ANY    /about
+    map                        ANY      ANY      ANY    /map
+    observer                   ANY      ANY      ANY    /observer
+    login                      ANY      ANY      ANY    /login
+    oauth                      ANY      ANY      ANY    /oauth
+    github_login               ANY      ANY      ANY    /oauth/github
+    vk_login                   ANY      ANY      ANY    /oauth/vk
+    login_check                ANY      ANY      ANY    /login_check
+    logout                     ANY      ANY      ANY    /logout
+    units                      GET      ANY      ANY    /admin/units/{unitId}
+    edit_unit                  POST     ANY      ANY    /admin/units/post
+    uitest                     ANY      ANY      ANY    /units/uitest
+    chain                      ANY      ANY      ANY    /units/chain
+    single                     ANY      ANY      ANY    /units/single/{name}
+    run                        ANY      ANY      ANY    /units/run/{name}

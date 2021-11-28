@@ -2,11 +2,9 @@ version: '2'
 
 services:
     sites:
-        build: sites
+        build: web
         volumes:
-            - ./sites/files:/usr/share/nginx
-            - ../web:/usr/share/nginx/wshell
-        entrypoint: /usr/share/nginx/entrypoint.sh
+            - ./web:/usr/share/nginx/wshell
     nginx:
         build: nginx
         ports:
